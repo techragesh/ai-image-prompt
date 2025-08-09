@@ -54,30 +54,43 @@ export const ChatContainer = () => {
     setMessages(prev => [...prev, loadingMessage]);
 
     try {
-      // TODO: Replace with your Spring Boot endpoint
+      // Send request to Spring Boot endpoint
       const formData = new FormData();
-      formData.append('prompt', text);
       if (image) {
-        formData.append('image', image);
+        formData.append('images', image); // 'file' is the expected field name for multipart
       }
 
-      // Simulate API call for now - replace with your actual endpoint
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock response - replace with actual API response
-      const mockResponse = `I can see your ${image ? 'image and ' : ''}message: "${text}". This is a mock response. Please connect this to your Spring Boot backend endpoint that integrates with Gemini AI.`;
+      // Build URL with prompt as request param
+      const url = new URL('https://documentanalyzer-q0se.onrender.com/api/v1/documentimage/analysis/from-files');
+      url.searchParams.append('prompt', text);
 
-      // Update the loading message with the response
+      const response = await fetch(url.toString(), {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get response from backend');
+      }
+
+      // Parse response as JSON and show the 'response' field
+      let aiResponse = '';
+      try {
+        const data = await response.json();
+        aiResponse = data.response || JSON.stringify(data);
+      } catch (e) {
+        aiResponse = await response.text();
+      }
+
       setMessages(prev => 
         prev.map(msg => 
           msg.id === loadingMessage.id
-            ? { ...msg, content: mockResponse, loading: false }
+            ? { ...msg, content: aiResponse, loading: false }
             : msg
         )
       );
 
       toast.success("Response received!");
-      
     } catch (error) {
       console.error('Error sending message:', error);
       
@@ -114,7 +127,7 @@ export const ChatContainer = () => {
               <MessageSquare className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold">Gemini AI Chat</h1>
+              <h1 className="text-xl font-semibold">AI Chat</h1>
               <p className="text-sm text-muted-foreground">
                 Upload images and ask questions
               </p>
@@ -143,7 +156,7 @@ export const ChatContainer = () => {
               <div className="w-16 h-16 rounded-full bg-gradient-primary flex items-center justify-center mb-4">
                 <MessageSquare className="w-8 h-8 text-primary-foreground" />
               </div>
-              <h2 className="text-2xl font-semibold mb-2">Welcome to Gemini AI Chat</h2>
+              <h2 className="text-2xl font-semibold mb-2">AI Chat</h2>
               <p className="text-muted-foreground max-w-md">
                 Upload an image and ask questions about it, or just start a conversation. 
                 Your messages will be processed by Gemini AI through your Spring Boot backend.
